@@ -1,0 +1,7 @@
+每次删掉log文件就不累计训练了
+
+运行kur
+    kur [-v] {train | test | evaluate | build} KURFILE.yml
+e.g.: kur train speech.yml
+
+

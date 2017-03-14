@@ -1,0 +1,38 @@
+data:
+  - SUPPLIER_1:
+      param_1: value_1
+      param_2: value_2
+      ...
+
+  - SUPPLIER_2:
+      param_1: value_1
+      ...
+
+有效的supplier:
+1.mnist
+2.cifar
+3.pickle
+4.numpy_dict
+5.csv
+6.speech_recognition
+   1)unpack:默认true,如果数据文件是压缩的,在使用数据之前,kur会解压这个文件
+   2)type:类型str,默认spec,提取音频特征
+   3)max_duration:float,默认None,只保留语音文件时间短于max_duration指定的数值,如果不指定,则保留全部
+   4)max_frequency:float,默认None,只保留语音文件中赫兹小于max_frequency指定的数值,如果不指定,则保留全部
+   5)vocab:str,list or None,默认None,如果是None则自动识别dataset中发现的数据.
+
+
+语音识别supplier提供下列的常量:(你可以在你的model中使用这些常量)
+1.utterance:语音文件本身
+2.utterance_length:语音文件帧的数量
+3.transcript:整数编码的字符表  an integet-encoded transcript
+4.transcript_length:相关transcript的长度
+5.duration:语音文件的时间长度,单位秒
+
+
+输入:可以是文件或者是字典,kur将搜索jsonl文件,jsonl文件每行应该包含如下keys:
+1.text:语音文件对应的文本信息
+2.duration_s:语音文件的时间长度,单位秒
+3.uuid:语音文件名,要求唯一,不需要扩展名,只要名字部分
+
+kur识别的语音文件格式有:wav  mp3  flac

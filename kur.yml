@@ -1,0 +1,313 @@
+---
+
+include:
+
+# Global variables go here (optional)
+# 包含外部的文件
+settings:
+
+# Your core model goes here (required)
+# 设置本文件的全局变量
+model:
+    # Input data
+    # 确保你有一个input入口
+    - input: INPUT # 提供的数据是python 的pickle格式文件,这个文件是一个字典格式,键值为INPUT
+    # ... other layers ...
+    # 层包括: convolution | activation | dense | input | output | recurrent | pool
+    # dense:全连接层  dense层不包含激活  如果有连续的dense必须明确写出激活
+    # 使用方法:
+    #   1.dense: SIZE
+    #   2.dense:
+    #       size: SIZE    SIZE为整数 或者是一个list  这个SIZE是一个输出的大小
+    #   如果SIZE是一个整数,则表示这个层中的node数
+    #   如果SIZE是一个list,则表示是一系列节点排列起来
+    # convolution:卷积等是一个局部连接层.
+    # 使用方法:
+    #    convolution:
+    #      kernels: KERNELS 卷积数量  就是过滤的数量
+    #      size: SIZE  整数或list 如果是list给出大小[width,height]  卷积核大小
+    #      strides: STRIDES 卷积时移动的步伐 整数或是list.This is optional; its default value is 1.
+    #                 If this is an integer, the stride is applied in each dimension; 
+    #                 if it is a list, it indicates the stride in each dimension.  这句什么意思?
+    #      border: BORDER valid 或 same 如何处理边界,默认 same
+    # recurrent:反馈层 RNN
+    # 使用方法:
+    #    recurrent:
+    #      size: SIZE  recurrent节点数量  
+    #        If SEQUENCE is true, then there are as many outputs as inputs (because the number of timesteps doesn’t change), and at each timestep, the feature vector has length SIZE.
+    #        If SEQUENCE is false, then the output of the RNN is length SIZE (because only the last timestep is kept).
+    #        什么意思
+    #      type: {lstm|gru} 默认 gru recurrent类型
+    #      sequence: SEQUENCE 
+    #      bidirectional: BIDIRECTIONAL boolean if true 构建一个双向的rnn
+    #      merge: {multiply|add|average|concat} 如果bidirectional true 如何合并前向与后向,如果bidirectional没有设置,则merge不被使用,默认 average
+    #      outer_activation: ACTIVATION 默认 relu  {softmax | relu | tanh | sigmoid | none}
+    # output:输出层
+    # 使用方法:下列两种
+    # 1.output: NAME
+    # 2.output:
+    #     name: NAME
+    #
+    # pool:池化层
+    # 使用方法:
+    #    pool:
+    #      size: SIZE  整数或整数list
+    #      strides: STRIDES  整数或整数list 默认1
+    #            If this is an integer, the stride is applied in each dimension;
+    #            if it is a list, it indicates the stride in each dimension
+    #            什么意思
+    #      type: { max | average }
+    #
+    # batch_normalization:指示kur如何激活上层,如果指定了维度,则规范化指定的维度,否则默认最后一个维度,它的作用是防止错误的初始化和提高收敛的速度.具体请看http://kur.deepgram.com/containers.html#batch-normalization
+    # 使用方法:
+    #   1.batch_normalization
+    #   2.batch_normalization:
+    #      axis: AXIS 在哪一维进行规范化,默认 -1 即最后一维
+    #
+    # expand:扩展层,插入一个新的维度到tensor中
+    # 使用方法:
+    # 1.expand: DIMENSION
+    # 2.expand:
+    #     dimension: DIMENSION    DIMENSION表示维度,1 表示第一维插入,-1,表示最后一维插入
+    #
+    # flatten:扁平层
+    # 使用方法:
+    # 1.flatten
+    # 2.flatten: 数据是m*n维的,当要输入到一个dense层时,则使用这个进行处理
+    #
+    # 其他层后续添加....
+    #
+    #
+    #
+    #
+    # 操  作: 
+    # for:可以创建任意的层
+    # 使用方法:
+    # for:
+    #   range: RANGE  循环次数
+    #   with_index: INDEX 创建一个本地变量INDEX,默认index
+    #   iterate:
+    #     - CONTAINER_1
+    #     - CONTAINER_2
+    #     ...
+    #  
+    # debug:调试信息打印 
+    # 使用方法:
+    #   debug: MESSAGE
+    # note:你必须使用kur -vv选项才可以看见这些信息
+    #  
+    # assert: 断言CONDITION
+    # 使用方法:
+    #   assert: CONDITION CONDITION断言条件必须为true
+    # Last layer. Change "softmax" if it is appropriate.
+    - activation: softmax
+    tag: foo #给这部分取个别名,可以单一的字符串foo,可以是数组[a,b,c],可以是多个标签:
+										#-a
+										#-b
+										#-c
+    # 如果引用这个别名使用 {{ tags:a }} 或者 {{ tags["foo"]}}
+    # 因为名字是不可变,所以需要这个别名
+    name: OUTPUT # 提供的数据是python 的pickle格式文件,这个文件是一个字典格式,键值为OUTPUT
+
+# All the information you need for training.
+train: #kur如何去训练model
+    # train包含:训练的数据位置=>data
+    #           训练的次数=>epochs
+    #           保存权重=>weights
+    #           等等
+    # Where to get training data from.
+    # NOTE: `TRAIN_DATA` needs to have dictionary keys named `INPUT` and
+    #       `OUTPUT`, corresponding to the `INPUT` and `OUTPUT` names in the
+    #       model section above.
+    # data告诉kur去加载pickled Python文件名为TRAIN_DATA
+    # 这个文件的格式应该是一个字典,字典的keys是model指定input/output的名字
+    data: # 告诉kur数据在哪
+      - pickle: TRAIN_DATA # TRAIN_DATA是文件的名字,特征部分的键值为INPUT,输出标签部分的键值为OUTPUT
+    ################################################
+    #
+    # 为了方便使用在data部分提供了下列方法:
+    # url: url地址
+    #    
+    # checksum: 检查SHA-256 hash 
+    #
+    # path: 本地数据路径
+    #
+    #
+    #
+    ################################################
+    # Try playing with the batch size and watching accuracy and speed.
+    # 每次提供给模型的样本数据的大小
+    provider: # 告诉kur如何提供数据,每次提供数据的大小是多少
+      batch_size: 32
+    ################################################
+    #
+    # 如果provider没有给出 或 name没有指定  则batch_provider创建一个默认的provider
+    #  e.g.
+    #    provider:
+    #      name: NAME
+    #      param_1: value_1
+    #      ...
+    #
+    # batch_provider:
+    #    randomize: 默认值 true 
+    #    batch_size: 每次提供的样本数 默认32 
+    #    num_batches: 用在较慢的机器上,整数
+    #    sortagrad: 顺序提供数据
+    #    force_batch_size: batch_size是否严格提供
+    #    sort_by: 如果指定,则在第一次迭代前,对数据进行排序
+    #    shuffle_after: 整数 指定多少次循环后,等待前面的随机数据集,默认 0
+    ################################################
+    # How many epochs to train for.
+    # 训练次数  整数 在kur train 命令时训练的次数
+    epochs: 10
+    ##############################
+    # epochs: 
+    #   number: NUMBER
+    #   mode: {additonal | total} default:additonal
+    #          total:训练的总数,一共10次,先训练了6次,然后停止程序,在执行kur train时则需要训练4次即可
+    #
+    #
+    ##############################
+    # Where to load and save weights.
+    # 告诉kur保存的模型的权重和参数
+    weights:
+      # must_exits: [yes | true | no | false]
+      # if true/yes,then Kur will refuse to train unless INITIAL exists
+      # 默认must_exits为no/false
+      initial: INITIAL_WEIGHTS # 告诉kur加载存在的权重,这个可能存在,因为你可以提前训练几次
+      best: BEST_TRAINING_LOSS_WEIGHTS #告诉kur在哪里保存权重和参数,保存的权重是最小loss 
+      last: MOST_RECENT_WEIGHTS # kur保存最后一次训练的权重和参数
+    # The optimizer to use. Try doubling or halving the learning rate.
+    optimizer:
+      name: adam #告诉kur使用的优化算法去提高模型的表现能力和最小化loss
+      learning_rate: 0.001 #学习率
+    ######################  
+    # 优化算法:下列是可选的优化算法,其中参数是默认值
+    #   name: adam 默认   在不指定优化算法时,默认是adam
+    #   learning_rate: 0.001 默认 
+    #   
+    #   name: sgd 
+    #   learning_rate: 0.01 
+    #   momentum: 0 
+    #   decay: 0
+    #   nesterov: no if true,Nesterov momentum calculations are used.
+    #
+    #   name: rmsprop
+    #   learning_rate: 0.001
+    #   rho: 0.9
+    #   epsilon: 1e-8
+    #   decay: 0
+    #   
+    #   上述的选项都支持下列选项:
+    #   clip: null
+    #   量化和裁剪梯度 
+    #   clip:
+    #     norm: X      这里不是L2 norm,具体请看speech.yml文件
+    #
+    #   clip:
+    #     abs: X       绝对值不会超过X
+    # 如果优化算法缺失,默认优化算法是adam
+    ######################  
+    # You need this section if you want to run validation checks during #
+    log: ~/log #告诉kur log文件的存放位置
+    ######################  
+    # log: null
+    #
+    # log:
+    #   path: ~/log
+    #
+    # log:
+    #   name: LOGGER_TYPE
+    #   param: VALUE
+    #   param2: VALUE2
+    ######################  
+
+    ######################  
+    # chechpoint:
+    #   path: PATH  表示checkpoint保存的位置
+    #   epochs: EPOCHS 
+    #   batches: BATCHES
+    #   samples: SAMPLES
+    #   MINUTES: MINUTES
+    #   validation: VALIDATION 表示在checkpoint期间会不会在model上运行validation set,默认是no
+    #   epochs,batches,samples,minutes是可选项,表示在epochs或者batches是创建checkpoint
+    #
+    ######################  
+# training. #
+validate: #  提供一个验证集,告诉Kur如何validate你的model
+          #  检查model是否过拟合
+          #  调节model的超参数
+	  #  判断model是否收敛
+    data: #
+    - pickle: VALIDATION_DATA #
+    # Where to save the best validation weights. #
+    weights: BEST_VALIDATION_LOSS_WEIGHTS #
+    # You need this section only if you want to run standalone test runs to #
+    # calculate loss. #
+    #####################################
+    #  provider: PROVIDER
+    #
+    #  hooks: HOOKS
+    #
+    #####################################
+
+
+
+    #####################################
+    # hooks:过滤 转换 打印 或者保存模型的输出
+    #####################################
+test: # 告诉 Kur测试你的model,kur test时使用
+    data: #
+    - pickle: TEST_DATA #
+    # Which weights to use for testing. #
+    weights: BEST_VALIDATION_LOSS_WEIGHTS #
+    # This section is for trying out your model on new data. #
+evaluate: #
+    # The data to supply as input. Unlike the train/validate/test sections, #
+    # you do not need a corresponding `OUTPUT` key. But if you do supply one, #
+    # Kur can save it to the output file for you so it's easy to use during #
+    # post-processing #
+    data: #
+    - pickle: NEW_DATA #
+    # Which weights to use for evaluation. #
+    weights: BEST_VALIDATION_LOSS_WEIGHTS #
+    # Where to save the result (as a Python pickle) #
+    destination: RESULTS.pkl #
+    # Required for training, validation and testing #
+loss: #
+    # You need an entry whose target is `OUTPUT` from the model section above. #
+    - target: OUTPUT # target需要和model的name对应上
+    ###############################
+    # name: loss function name
+    # 有效的loss function:
+    #    categorical_crossentropy:交叉熵损失.应用在1-of-N分类任务
+    #    mean_squared_error:计算model和真实的向量之间的距离
+    #    ctc:Connectionist temporal classification.soft-alignment loss函数适合语音识别
+    # CTC损失例子:
+    #   -name: ctc
+    #      target: PREDICTED_TRANSCRIPTION 对应model的输出
+    #	   output: TRUE_TRANSCRIPTION 样本的真实输出
+    #	   input_length: LENGTH_OF_PREDICTED_TRANSCRIPTION 对应的data source输入长度
+    #	   output_length: LENGTH_OF_TRUE_TRANSCRIPTION 对应的data source 输出音标长度
+    #      relative_to: AUTOSCALE_TARGET
+    #
+    # 语音识别任务中,会提供下列的资源供你使用:
+    #   utterance  语音信号本身
+    #   utterance_length  语音信号帧数
+    #   transcript  一个整数编码的副本
+    #   transcript_length  副本的长度
+    #   duration  语音时间长度 单位秒
+    ###############################
+    # 输入:文件或者是字典
+    #      kur将搜索json格式文件,json文件每一行包含下列三个keys:
+    #           text:文本描述
+    #           duration_s:语音文件的秒数
+    #           uuid:唯一的语音文件id,文件名
+    # json文件后缀为.jsonl
+    # 最重要的事情:准备一个python pickle文件,keys为model输入/输出的名字,例如:test文件夹中的例子,pkl文件有两个keys,一个是point,一个是above,point在model输入时使用,above在输出时使用
+    # kur接受的语音文件有:wav mp3 flac
+    ###############################
+    # The name of the loss function. Change it if appropriate #
+    name: categorical_crossentropy #
+...
+

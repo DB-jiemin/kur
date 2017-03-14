@@ -1,0 +1,22 @@
+---
+
+# Optional
+include:
+
+# Optional
+settings:
+
+# Required
+model:
+
+# Required for respective functionality.
+train:
+validate:
+test:
+evaluate:
+
+# Required for training, validation, and testing
+loss:
+
+...
+

@@ -1,0 +1,136 @@
+---
+###############################################################################
+settings:
+  # Deep learning model
+  cnn:
+    kernels: 1000
+    size: 11
+    stride: 2
+  rnn:
+    size: 1000
+    depth: 3
+  vocab: #可以是 str list or None 如果是None则表示使用dataset中出现的字符
+    # Need for CTC
+    size: 28
+
+  # Setting up the backend.
+  backend:
+    name: keras # 使用keras,如果没有则使用tensorflow
+    backend: tensorflow #后台的程序,这个程序的后台是tensorflow
+
+  # Batch sizes
+  provider: &provider
+    batch_size: 16
+    force_batch_size: yes
+
+  # Where to put the data.
+  data: &data
+    path: "~/kur"
+    type: spec #spec | mfcc 默认 spec
+    max_duration: 50 #秒数,保留小于50秒的句子,不指定的话,则默认全部
+    max_frequency: 8000 #赫兹,保留小于8000赫兹的帧,如果是null,则保留全部
+    normalization: norm.yml #这个是解决什么问题的
+
+  # Where to put the weights
+  weights: &weights weights
+
+###############################################################################
+model:
+
+  # This is Baidu's DeepSpeech model:
+  #   https://arxiv.org/abs/1412.5567
+  # Kur makes prototyping different versions of it incredibly easy.
+
+  # The model input is audio data (called utterances).
+  - input: utterance
+
+  # One-dimensional, variable-size convolutional layers to extract more
+  # efficient representation of the data.
+  - convolution:
+      kernels: "{{ cnn.kernels }}" # 引用全局变量
+      size: "{{ cnn.size }}"
+      strides: "{{ cnn.stride }}"
+      border: valid
+  - activation: relu
+  - batch_normalization
+
+  # A series of recurrent layers to learn temporal sequences.
+  - for:
+      range: "{{ rnn.depth }}"
+      iterate:
+        - recurrent:
+            size: "{{ rnn.size }}"
+            sequence: yes
+        - batch_normalization
+
+  # A dense layer to get everything into the right output shape.
+  - parallel:
+      apply:
+        - dense: "{{ vocab.size + 1 }}"
+  - activation: softmax
+
+  # The output is the transcription.
+  - output: asr
+
+###############################################################################
+train:
+
+  data:
+    # A "speech_recognition" data supplier will create these data sources:
+    #   utterance, utterance_length, transcript, transcript_length, duration
+    - speech_recognition:
+        <<: *data
+        url: "http://kur.deepgram.com/data/lsdc-train.tar.gz"
+        checksum: >-
+          fc414bccf4de3964f895eaa9d0e245ea28810a94be3079b55505cf0eb1644f94
+
+  weights: *weights
+  provider:
+    <<: *provider
+    sortagrad: duration
+
+  log: log
+
+  optimizer:
+    name: sgd
+    nesterov: yes
+    learning_rate: 2e-4
+    momentum: 0.9
+    clip:
+      norm: 100
+
+###############################################################################
+validate: &validate
+  data:
+    - speech_recognition:
+        <<: *data
+        url: "http://kur.deepgram.com/data/lsdc-test.tar.gz"
+        checksum: >-
+          e1c8cf9cd57e8c1ae952b6e4e40dcb5c8e3932c81ecd52c090e4a05c8ebbea2b
+
+  weights: *weights
+  provider: *provider
+
+  hooks:
+    - transcript
+
+###############################################################################
+test: *validate
+
+###############################################################################
+evaluate: *validate
+
+###############################################################################
+loss:
+  - name: ctc
+    # The model's output (its best-guest transcript).
+    target: asr
+    # How long the corresponding audio utterance is.
+    input_length: utterance_length
+    relative_to: utterance
+    # How long the ground-truth transcript is.
+    output_length: transcript_length
+    # The ground-truth transcipt itself.
+    output: transcript
+
+...
